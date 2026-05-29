@@ -1,0 +1,57 @@
+# arxiv-digest example config. Copy to `config.yaml` and edit.
+
+categories:
+  - hep-th
+  - cond-mat.str-el
+
+authors:
+  # Each entry is either a bare "Given Surname" string or a dict
+  # {surname: ..., given: ...} for explicit control.
+  # Matching is case-insensitive and accent-folded; surnames must match
+  # as whole tokens (so "Lee" won't match "Leeson").
+  - "Edward Witten"
+  - "Maldacena"            # surname only — matches any first name
+  - surname: "Polchinski"
+    given: "Joseph"        # disambiguate via given name
+
+keywords:
+  any_of:
+    - "holography"
+    - "black hole entropy"
+
+exclude:
+  authors: []
+  keywords: []
+
+output:
+  dir: "./digests"
+  format: markdown
+  include_abstract: true
+  group_by: category       # category | author | none
+  random_count: 0          # extra random picks from unmatched papers, appended at end
+
+http:
+  # Please use a descriptive User-Agent with a contact email. arXiv asks
+  # for it in their API terms of use.
+  user_agent: "arxiv-digest/0.1 (you@example.com)"
+  min_interval_seconds: 3
+  timeout_seconds: 20
+
+email:
+  enabled: false
+  to:
+    - "you@example.com"
+  from_addr: "you@example.com"
+  subject: "arXiv digest — {date}"   # `{date}` is substituted with YYYY-MM-DD
+  host: "smtp.gmail.com"
+  port: 587
+  username: "you@example.com"
+  # SMTP password is read from this env var, never stored in config.
+  # For Gmail: enable 2FA, then create an app password at
+  #   https://myaccount.google.com/apppasswords
+  # In GitHub Actions, expose it as a repo secret named ARXIV_DIGEST_SMTP_PASSWORD.
+  password_env: "ARXIV_DIGEST_SMTP_PASSWORD"
+  attach_file: true
+
+# Set true if you also want papers marked "replaced" by arXiv today.
+include_replacements: false

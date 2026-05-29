@@ -1,0 +1,27 @@
+# Personal configs — kept out of git. Reconstructed in CI from
+# the ARXIV_DIGEST_CONFIG secret. Use config.example.yaml as the
+# committed template.
+config.yaml
+config1.yaml
+
+# Generated digest output.
+digests/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Test/lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Editor
+.DS_Store
+.vscode/
+.idea/
