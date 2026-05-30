@@ -140,13 +140,52 @@ arxiv-digest validate-config [--config PATH]
 
 arxiv-digest init [--config PATH] [--force]
     Copy the bundled example config to PATH (default ./config.yaml).
+
+arxiv-digest schedule install [--config PATH]
+    Register a daily run with the OS scheduler at config.schedule.{hour,minute}.
+arxiv-digest schedule uninstall
+    Remove the scheduled run.
+arxiv-digest schedule status
+    Report whether the scheduled run is installed.
 ```
 
+`run` also takes `--notify/--no-notify` to override `config.notify.enabled`.
 All commands accept `--config PATH` if you want to keep configs elsewhere.
 
 ## Scheduling
 
-### Locally (cron / launchd)
+### Locally (built-in, macOS)
+
+Set a time and (optionally) a desktop notification in your config:
+
+```yaml
+schedule:
+  enabled: true
+  hour: 21        # 24-hour local time
+  minute: 30
+notify:
+  enabled: true
+  open_on_click: true   # click the banner to open the digest folder
+```
+
+then install the job:
+
+```bash
+arxiv-digest schedule install
+```
+
+This registers a launchd LaunchAgent that runs `arxiv-digest run` daily at the
+configured time and shows a banner with the match count. Change the time by
+editing the config and re-running `install`; remove it with
+`arxiv-digest schedule uninstall`. The notification uses
+[`terminal-notifier`](https://github.com/julienXX/terminal-notifier) if
+installed (clickable), otherwise falls back to `osascript`.
+
+> **Platform support:** the built-in scheduler is macOS-only for now; Linux
+> (systemd) and Windows (Task Scheduler) backends are planned. `notify` and the
+> scheduler no-op / error clearly on unsupported platforms.
+
+### Locally (cron, any OS)
 
 arXiv announces around **20:00 US Eastern** on weekdays, so schedule any
 time after that. A minimal crontab entry:

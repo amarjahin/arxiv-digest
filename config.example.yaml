@@ -53,5 +53,18 @@ email:
   password_env: "ARXIV_DIGEST_SMTP_PASSWORD"
   attach_file: true
 
+# Daily scheduled run. After editing, install it with:
+#   arxiv-digest schedule install
+# (macOS only for now; uses launchd. Linux/Windows are planned.)
+schedule:
+  enabled: false
+  hour: 8       # 24-hour local time
+  minute: 0
+
+# Desktop notification at the end of a run, showing the match count.
+notify:
+  enabled: false
+  open_on_click: true   # click the banner to open the digest folder (macOS)
+
 # Set true if you also want papers marked "replaced" by arXiv today.
 include_replacements: false

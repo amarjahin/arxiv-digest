@@ -17,12 +17,13 @@ from pathlib import Path
 import click
 from rich.console import Console
 
-from . import __version__
-from .config import Config, ConfigError, load_config
+from . import __version__, notify, schedule
+from .config import ConfigError, load_config
 from .fetch import ArxivClient, fetch_category
 from .filter import filter_papers
 from .mailer import EmailError, send_digest
 from .render import render_markdown, write_digest
+from .schedule import ScheduleError
 
 console = Console()
 err_console = Console(stderr=True, style="red")
@@ -57,7 +58,18 @@ def main() -> None:
     default=None,
     help="Force email on/off, overriding config.email.enabled.",
 )
-def run(config_path: Path, dry_run: bool, email_override: bool | None) -> None:
+@click.option(
+    "--notify/--no-notify",
+    "notify_override",
+    default=None,
+    help="Force the desktop notification on/off, overriding config.notify.enabled.",
+)
+def run(
+    config_path: Path,
+    dry_run: bool,
+    email_override: bool | None,
+    notify_override: bool | None,
+) -> None:
     """Fetch today's arXiv submissions, filter, and write a digest."""
     try:
         cfg = load_config(config_path)
@@ -134,6 +146,16 @@ def run(config_path: Path, dry_run: bool, email_override: bool | None) -> None:
         n = len(cfg.email.to)
         console.print(f"Emailed digest to [green]{n}[/green] recipient{'s' if n != 1 else ''}")
 
+    should_notify = cfg.notify.enabled if notify_override is None else notify_override
+    if should_notify:
+        open_path = cfg.output.dir.resolve() if cfg.notify.open_on_click else None
+        notify.send(
+            title="arXiv digest",
+            message=f"{len(matched)} matches out of {total} new submissions",
+            open_path=open_path,
+            enabled=True,
+        )
+
 
 @main.command("validate-config")
 @click.option(
@@ -174,6 +196,73 @@ def init(config_path: Path, force: bool) -> None:
         sys.exit(1)
     shutil.copy(EXAMPLE_CONFIG_PATH, config_path)
     console.print(f"Wrote [green]{config_path}[/green]. Edit it, then run `arxiv-digest run`.")
+
+
+# Named "schedule" explicitly; the function can't be (it would shadow the
+# imported `schedule` module).
+@main.group("schedule")
+def schedule_cmd() -> None:
+    """Manage the daily scheduled run (macOS launchd)."""
+
+
+@schedule_cmd.command("install")
+@click.option(
+    "--config",
+    "config_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=DEFAULT_CONFIG_PATH,
+    show_default=True,
+    help="Path to YAML config; its schedule.* fields set the run time.",
+)
+def schedule_install(config_path: Path) -> None:
+    """Install (or replace) the daily scheduled run from config.schedule."""
+    try:
+        cfg = load_config(config_path)
+    except ConfigError as e:
+        err_console.print(str(e))
+        sys.exit(2)
+    if not cfg.schedule.enabled:
+        err_console.print(
+            "config.schedule.enabled is false — set it to true (and hour/minute) first."
+        )
+        sys.exit(1)
+    try:
+        path = schedule.install(
+            config_path=config_path,
+            hour=cfg.schedule.hour,
+            minute=cfg.schedule.minute,
+        )
+    except ScheduleError as e:
+        err_console.print(str(e))
+        sys.exit(4)
+    console.print(
+        f"Scheduled daily at [bold]{cfg.schedule.hour:02d}:{cfg.schedule.minute:02d}[/bold]. "
+        f"Job: [green]{path}[/green]"
+    )
+
+
+@schedule_cmd.command("uninstall")
+def schedule_uninstall() -> None:
+    """Remove the daily scheduled run."""
+    try:
+        removed = schedule.uninstall()
+    except ScheduleError as e:
+        err_console.print(str(e))
+        sys.exit(4)
+    if removed:
+        console.print("Removed the scheduled run.")
+    else:
+        console.print("Nothing to remove — no scheduled run was installed.")
+
+
+@schedule_cmd.command("status")
+def schedule_status() -> None:
+    """Show whether the daily run is scheduled."""
+    try:
+        console.print(schedule.status())
+    except ScheduleError as e:
+        err_console.print(str(e))
+        sys.exit(4)
 
 
 if __name__ == "__main__":

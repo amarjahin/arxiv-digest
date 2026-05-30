@@ -71,6 +71,23 @@ class Email(BaseModel):
     attach_file: bool = True            # attach the .md file alongside the body
 
 
+class Schedule(BaseModel):
+    """Daily run time for `arxiv-digest schedule install` (local clock)."""
+
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = False
+    hour: int = Field(default=8, ge=0, le=23)
+    minute: int = Field(default=0, ge=0, le=59)
+
+
+class Notify(BaseModel):
+    """Desktop notification shown at the end of a run."""
+
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = False
+    open_on_click: bool = True   # clicking the banner opens the digest folder
+
+
 class Config(BaseModel):
     """Top-level config. `extra='forbid'` so a typo in a key fails fast."""
 
@@ -83,6 +100,8 @@ class Config(BaseModel):
     output: Output = Field(default_factory=Output)
     http: Http = Field(default_factory=Http)
     email: Email = Field(default_factory=Email)
+    schedule: Schedule = Field(default_factory=Schedule)
+    notify: Notify = Field(default_factory=Notify)
     include_replacements: bool = False
 
     @field_validator("categories")

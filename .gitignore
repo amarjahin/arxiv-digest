@@ -7,6 +7,9 @@ config1.yaml
 # Generated digest output.
 digests/
 
+# Run logs (e.g. from the scheduled run).
+*.log
+
 # Python
 __pycache__/
 *.py[cod]
