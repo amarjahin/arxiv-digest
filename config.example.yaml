@@ -29,6 +29,7 @@ output:
   include_abstract: true
   group_by: category       # category | author | none
   random_count: 0          # extra random picks from unmatched papers, appended at end
+  keep_days: 7             # delete digests older than this many days (omit to keep all)
 
 http:
   # Please use a descriptive User-Agent with a contact email. arXiv asks

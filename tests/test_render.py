@@ -97,3 +97,29 @@ def test_omit_abstract_when_flag_off():
         include_abstract=False,
     )
     assert "> A short abstract." not in md
+
+
+def test_prune_digests_removes_only_old_digest_files(tmp_path):
+    from arxiv_digest.render import prune_digests
+
+    today = date(2026, 9, 30)
+    old = tmp_path / "2026-09-22_hep-th.md"          # 8 days old
+    boundary = tmp_path / "2026-09-23_hep-th.md"     # exactly 7 days — kept
+    recent = tmp_path / "2026-09-29_hep-th.md"
+    unrelated = tmp_path / "notes.md"
+    old_non_md = tmp_path / "2020-01-01_hep-th.txt"
+    for p in (old, boundary, recent, unrelated, old_non_md):
+        p.write_text("x")
+
+    removed = prune_digests(tmp_path, today, keep_days=7)
+
+    assert removed == [old]
+    assert not old.exists()
+    assert boundary.exists() and recent.exists()
+    assert unrelated.exists() and old_non_md.exists()
+
+
+def test_prune_digests_missing_dir_is_noop(tmp_path):
+    from arxiv_digest.render import prune_digests
+
+    assert prune_digests(tmp_path / "nope", date(2026, 9, 30), keep_days=7) == []

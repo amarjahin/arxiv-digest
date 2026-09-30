@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date
+import re
+from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
 from typing import Literal
@@ -64,6 +65,32 @@ def write_digest(
     path = output_dir / f"{run_date.isoformat()}_{primary_category}.md"
     path.write_text(content, encoding="utf-8")
     return path
+
+
+# Matches only files `write_digest` produces, so pruning never touches
+# anything else a user keeps in the output dir.
+_DIGEST_NAME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})_.+\.md$")
+
+
+def prune_digests(output_dir: Path, today: date, keep_days: int) -> list[Path]:
+    """Delete digests whose filename date is more than `keep_days` before
+    `today`. Returns the removed paths."""
+    if not output_dir.is_dir():
+        return []
+    cutoff = today - timedelta(days=keep_days)
+    removed: list[Path] = []
+    for path in sorted(output_dir.iterdir()):
+        m = _DIGEST_NAME_RE.match(path.name)
+        if not m or not path.is_file():
+            continue
+        try:
+            file_date = date.fromisoformat(m.group(1))
+        except ValueError:
+            continue
+        if file_date < cutoff:
+            path.unlink()
+            removed.append(path)
+    return removed
 
 
 # ---- internals ----

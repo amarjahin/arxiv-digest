@@ -22,7 +22,7 @@ from .config import ConfigError, load_config
 from .fetch import ArxivClient, fetch_category
 from .filter import filter_papers
 from .mailer import EmailError, send_digest
-from .render import render_markdown, write_digest
+from .render import prune_digests, render_markdown, write_digest
 from .schedule import ScheduleError
 
 console = Console()
@@ -136,6 +136,14 @@ def run(
     path = write_digest(md, cfg.output.dir, today, primary_category=cfg.categories[0])
     console.print(f"Wrote [green]{path}[/green]")
 
+    if cfg.output.keep_days is not None:
+        removed = prune_digests(cfg.output.dir, today, cfg.output.keep_days)
+        if removed:
+            console.print(
+                f"Removed [dim]{len(removed)}[/dim] digest{'s' if len(removed) != 1 else ''} "
+                f"older than {cfg.output.keep_days} days"
+            )
+
     should_email = cfg.email.enabled if email_override is None else email_override
     if should_email:
         try:
@@ -215,7 +223,10 @@ def schedule_cmd() -> None:
     help="Path to YAML config; its schedule.* fields set the run time.",
 )
 def schedule_install(config_path: Path) -> None:
-    """Install (or replace) the daily scheduled run from config.schedule."""
+    """Install (or replace) this config's daily run from config.schedule.
+
+    Each config file gets its own job, so several configs can be scheduled
+    side by side."""
     try:
         cfg = load_config(config_path)
     except ConfigError as e:
@@ -236,28 +247,36 @@ def schedule_install(config_path: Path) -> None:
         err_console.print(str(e))
         sys.exit(4)
     console.print(
-        f"Scheduled daily at [bold]{cfg.schedule.hour:02d}:{cfg.schedule.minute:02d}[/bold]. "
+        f"Scheduled weekdays at [bold]{cfg.schedule.hour:02d}:{cfg.schedule.minute:02d}[/bold]. "
         f"Job: [green]{path}[/green]"
     )
 
 
 @schedule_cmd.command("uninstall")
-def schedule_uninstall() -> None:
-    """Remove the daily scheduled run."""
+@click.option(
+    "--config",
+    "config_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=DEFAULT_CONFIG_PATH,
+    show_default=True,
+    help="Config whose scheduled run to remove.",
+)
+def schedule_uninstall(config_path: Path) -> None:
+    """Remove the daily scheduled run for one config."""
     try:
-        removed = schedule.uninstall()
+        removed = schedule.uninstall(config_path=config_path)
     except ScheduleError as e:
         err_console.print(str(e))
         sys.exit(4)
     if removed:
-        console.print("Removed the scheduled run.")
+        console.print(f"Removed the scheduled run for {config_path}.")
     else:
-        console.print("Nothing to remove — no scheduled run was installed.")
+        console.print(f"Nothing to remove — no scheduled run was installed for {config_path}.")
 
 
 @schedule_cmd.command("status")
 def schedule_status() -> None:
-    """Show whether the daily run is scheduled."""
+    """Show every installed daily run (one per config)."""
     try:
         console.print(schedule.status())
     except ScheduleError as e:

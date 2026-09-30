@@ -96,6 +96,7 @@ output:
   include_abstract: true
   group_by: category          # category | author | none
   random_count: 0             # extra random picks from unmatched papers
+  keep_days: 7                # delete digests older than N days (omit to keep all)
 
 http:
   user_agent: "arxiv-digest/0.1 (you@example.com)"
@@ -142,11 +143,12 @@ arxiv-digest init [--config PATH] [--force]
     Copy the bundled example config to PATH (default ./config.yaml).
 
 arxiv-digest schedule install [--config PATH]
-    Register a daily run with the OS scheduler at config.schedule.{hour,minute}.
-arxiv-digest schedule uninstall
-    Remove the scheduled run.
+    Register a weekday run with the OS scheduler at config.schedule.{hour,minute}.
+    Each config file gets its own job, so several can be scheduled at once.
+arxiv-digest schedule uninstall [--config PATH]
+    Remove that config's scheduled run.
 arxiv-digest schedule status
-    Report whether the scheduled run is installed.
+    List every installed scheduled run and the config it uses.
 ```
 
 `run` also takes `--notify/--no-notify` to override `config.notify.enabled`.
@@ -174,10 +176,13 @@ then install the job:
 arxiv-digest schedule install
 ```
 
-This registers a launchd LaunchAgent that runs `arxiv-digest run` daily at the
-configured time and shows a banner with the match count. Change the time by
+This registers a launchd LaunchAgent that runs `arxiv-digest run` every weekday
+(Mon–Fri) at the configured time and shows a banner with the match count. Change the time by
 editing the config and re-running `install`; remove it with
-`arxiv-digest schedule uninstall`. The notification uses
+`arxiv-digest schedule uninstall`. To schedule more than one config, run
+`install --config other.yaml` for each; every config gets its own job
+(`com.arxiv-digest.daily.<name>`) and log (`arxiv-digest-<name>.log`), so they
+don't replace each other. The notification uses
 [`terminal-notifier`](https://github.com/julienXX/terminal-notifier) if
 installed (clickable), otherwise falls back to `osascript`.
 

@@ -46,6 +46,7 @@ class Output(BaseModel):
     include_abstract: bool = True
     group_by: Literal["category", "author", "none", "priority"] = "category"
     random_count: int = Field(default=0, ge=0)
+    keep_days: int | None = Field(default=None, ge=1)   # prune older digests; None = keep all
 
 
 class Http(BaseModel):
