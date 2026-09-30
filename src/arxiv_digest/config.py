@@ -46,6 +46,7 @@ class Output(BaseModel):
     include_abstract: bool = True
     group_by: Literal["category", "author", "none", "priority"] = "category"
     random_count: int = Field(default=0, ge=0)
+    keep_days: int | None = Field(default=None, ge=1)   # prune older digests; None = keep all
 
 
 class Http(BaseModel):
@@ -55,20 +56,21 @@ class Http(BaseModel):
     timeout_seconds: float = 20.0
 
 
-class Email(BaseModel):
-    """SMTP delivery settings. Password is never stored here — it's read at
-    send time from the env var named in `password_env`."""
+class Schedule(BaseModel):
+    """Daily run time for `arxiv-digest schedule install` (local clock)."""
 
     model_config = ConfigDict(extra="forbid")
     enabled: bool = False
-    to: list[str] = Field(default_factory=list)
-    from_addr: str | None = None        # defaults to `username` if unset
-    subject: str = "arXiv digest — {date}"   # `{date}` is substituted at send time
-    host: str = "smtp.gmail.com"
-    port: int = 587
-    username: str = ""                  # SMTP login (usually your Gmail address)
-    password_env: str = "ARXIV_DIGEST_SMTP_PASSWORD"
-    attach_file: bool = True            # attach the .md file alongside the body
+    hour: int = Field(default=8, ge=0, le=23)
+    minute: int = Field(default=0, ge=0, le=59)
+
+
+class Notify(BaseModel):
+    """Desktop notification shown at the end of a run."""
+
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = False
+    open_on_click: bool = True   # clicking the banner opens the digest folder
 
 
 class Config(BaseModel):
@@ -82,7 +84,8 @@ class Config(BaseModel):
     exclude: Exclude = Field(default_factory=Exclude)
     output: Output = Field(default_factory=Output)
     http: Http = Field(default_factory=Http)
-    email: Email = Field(default_factory=Email)
+    schedule: Schedule = Field(default_factory=Schedule)
+    notify: Notify = Field(default_factory=Notify)
     include_replacements: bool = False
 
     @field_validator("categories")

@@ -29,6 +29,7 @@ output:
   include_abstract: true
   group_by: category       # category | author | none
   random_count: 0          # extra random picks from unmatched papers, appended at end
+  keep_days: 7             # delete digests older than this many days (omit to keep all)
 
 http:
   # Please use a descriptive User-Agent with a contact email. arXiv asks
@@ -37,21 +38,18 @@ http:
   min_interval_seconds: 3
   timeout_seconds: 20
 
-email:
+# Daily scheduled run. After editing, install it with:
+#   arxiv-digest schedule install
+# (macOS only for now; uses launchd. Linux/Windows are planned.)
+schedule:
   enabled: false
-  to:
-    - "you@example.com"
-  from_addr: "you@example.com"
-  subject: "arXiv digest — {date}"   # `{date}` is substituted with YYYY-MM-DD
-  host: "smtp.gmail.com"
-  port: 587
-  username: "you@example.com"
-  # SMTP password is read from this env var, never stored in config.
-  # For Gmail: enable 2FA, then create an app password at
-  #   https://myaccount.google.com/apppasswords
-  # In GitHub Actions, expose it as a repo secret named ARXIV_DIGEST_SMTP_PASSWORD.
-  password_env: "ARXIV_DIGEST_SMTP_PASSWORD"
-  attach_file: true
+  hour: 8       # 24-hour local time
+  minute: 0
+
+# Desktop notification at the end of a run, showing the match count.
+notify:
+  enabled: false
+  open_on_click: true   # click the banner to open the digest folder (macOS)
 
 # Set true if you also want papers marked "replaced" by arXiv today.
 include_replacements: false
