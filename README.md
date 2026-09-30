@@ -8,38 +8,6 @@ Source of truth for "today" is arXiv's official per-category RSS feed
 (`https://rss.arxiv.org/rss/<category>`), so it matches what's on the
 `/list/<category>/new` page exactly (and correctly skips weekends/holidays).
 
-## Get the digest emailed daily (no install)
-
-Fork this repo, add two secrets, and a daily email arrives in your inbox.
-No code to write or run locally.
-
-1. **Fork** — click "Fork" at the top of this page.
-2. **Enable Actions on your fork** — Actions tab → click the green "I
-   understand my workflows, go ahead and enable them" button. Forks have
-   Actions disabled by default; without this step the cron never fires.
-3. **Generate a Gmail app password** (requires 2FA on your Google account):
-   - Turn on 2FA: https://myaccount.google.com/signinoptions/two-step-verification
-   - Then: https://myaccount.google.com/apppasswords → name it `arxiv-digest`
-     → copy the 16-character password.
-4. **Write your config** — open `config.example.yaml` on your fork, copy it
-   to a local `config.yaml`, and edit: set `categories`, `authors`,
-   `keywords`, and the `email:` block (your gmail address as `to`,
-   `from_addr`, and `username`; leave `password_env` alone).
-5. **Add two repository secrets** on your fork — Settings → Secrets and
-   variables → Actions → New repository secret:
-   - `ARXIV_DIGEST_SMTP_PASSWORD` = the 16-char app password from step 3.
-   - `ARXIV_DIGEST_CONFIG` = the full contents of your `config.yaml`.
-6. **Test it** — Actions tab → "Daily arXiv digest" → "Run workflow". The
-   email should land within ~30 seconds.
-
-That's it. The cron (`0 13 * * 1-5` UTC = 09:00 ET weekdays) takes over
-automatically. To change anything — different keywords, a new recipient,
-extra categories — just edit the `ARXIV_DIGEST_CONFIG` secret in the
-GitHub UI; no commit needed. To change the schedule, edit the `cron:` line
-in `.github/workflows/digest.yml`.
-
-The rest of this README is for running locally or contributing.
-
 ## Install
 
 Requires Python 3.11+.
@@ -58,7 +26,7 @@ This puts an `arxiv-digest` command on your `PATH` (inside the venv).
 
 ```bash
 arxiv-digest init             # writes ./config.yaml from the example
-$EDITOR config.yaml           # set your authors, keywords, categories, email
+$EDITOR config.yaml           # set your authors, keywords, categories
 arxiv-digest validate-config  # confirm the YAML parses
 arxiv-digest run              # writes digests/YYYY-MM-DD.md
 ```
@@ -102,17 +70,6 @@ http:
   user_agent: "arxiv-digest/0.1 (you@example.com)"
   min_interval_seconds: 3     # arXiv asks for ≤ 1 request / 3 seconds
   timeout_seconds: 20
-
-email:
-  enabled: false              # set true (or use `--email`) to send via SMTP
-  to: ["you@example.com"]
-  from_addr: "you@example.com"
-  subject: "arXiv digest — {date}"
-  host: "smtp.gmail.com"
-  port: 587
-  username: "you@example.com"
-  password_env: "ARXIV_DIGEST_SMTP_PASSWORD"   # read at send time
-  attach_file: true
 
 include_replacements: false   # also surface papers arXiv replaced today
 ```
@@ -198,14 +155,6 @@ time after that. A minimal crontab entry:
 ```cron
 30 21 * * 1-5  cd /path/to/arXiv_search && .venv/bin/arxiv-digest run >> digest.log 2>&1
 ```
-
-### Daily email via GitHub Actions
-
-See [Get the digest emailed daily](#get-the-digest-emailed-daily-no-install)
-at the top of the README — same flow whether you forked or pushed your own
-clone. The workflow (`.github/workflows/digest.yml`) reads two repo secrets
-(`ARXIV_DIGEST_SMTP_PASSWORD`, `ARXIV_DIGEST_CONFIG`) and runs on cron
-`0 13 * * 1-5` (09:00 ET weekdays).
 
 ## Output
 

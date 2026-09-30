@@ -56,22 +56,6 @@ class Http(BaseModel):
     timeout_seconds: float = 20.0
 
 
-class Email(BaseModel):
-    """SMTP delivery settings. Password is never stored here — it's read at
-    send time from the env var named in `password_env`."""
-
-    model_config = ConfigDict(extra="forbid")
-    enabled: bool = False
-    to: list[str] = Field(default_factory=list)
-    from_addr: str | None = None        # defaults to `username` if unset
-    subject: str = "arXiv digest — {date}"   # `{date}` is substituted at send time
-    host: str = "smtp.gmail.com"
-    port: int = 587
-    username: str = ""                  # SMTP login (usually your Gmail address)
-    password_env: str = "ARXIV_DIGEST_SMTP_PASSWORD"
-    attach_file: bool = True            # attach the .md file alongside the body
-
-
 class Schedule(BaseModel):
     """Daily run time for `arxiv-digest schedule install` (local clock)."""
 
@@ -100,7 +84,6 @@ class Config(BaseModel):
     exclude: Exclude = Field(default_factory=Exclude)
     output: Output = Field(default_factory=Output)
     http: Http = Field(default_factory=Http)
-    email: Email = Field(default_factory=Email)
     schedule: Schedule = Field(default_factory=Schedule)
     notify: Notify = Field(default_factory=Notify)
     include_replacements: bool = False

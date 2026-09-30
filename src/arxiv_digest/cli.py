@@ -21,7 +21,6 @@ from . import __version__, notify, schedule
 from .config import ConfigError, load_config
 from .fetch import ArxivClient, fetch_category
 from .filter import filter_papers
-from .mailer import EmailError, send_digest
 from .render import prune_digests, render_markdown, write_digest
 from .schedule import ScheduleError
 
@@ -53,12 +52,6 @@ def main() -> None:
     help="Fetch and filter but don't write the digest file.",
 )
 @click.option(
-    "--email/--no-email",
-    "email_override",
-    default=None,
-    help="Force email on/off, overriding config.email.enabled.",
-)
-@click.option(
     "--notify/--no-notify",
     "notify_override",
     default=None,
@@ -67,7 +60,6 @@ def main() -> None:
 def run(
     config_path: Path,
     dry_run: bool,
-    email_override: bool | None,
     notify_override: bool | None,
 ) -> None:
     """Fetch today's arXiv submissions, filter, and write a digest."""
@@ -143,16 +135,6 @@ def run(
                 f"Removed [dim]{len(removed)}[/dim] digest{'s' if len(removed) != 1 else ''} "
                 f"older than {cfg.output.keep_days} days"
             )
-
-    should_email = cfg.email.enabled if email_override is None else email_override
-    if should_email:
-        try:
-            send_digest(cfg.email, body=md, run_date=today, attachment_path=path)
-        except EmailError as e:
-            err_console.print(f"Email send failed: {e}")
-            sys.exit(3)
-        n = len(cfg.email.to)
-        console.print(f"Emailed digest to [green]{n}[/green] recipient{'s' if n != 1 else ''}")
 
     should_notify = cfg.notify.enabled if notify_override is None else notify_override
     if should_notify:
